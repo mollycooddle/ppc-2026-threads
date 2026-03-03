@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 #include "morozova_s_strassen_multiplication/common/include/common.hpp"
 #include "task/include/task.hpp"
 
@@ -28,6 +26,6 @@ class MorozovaSStrassenMultiplicationSEQ : public BaseTask {
   [[nodiscard]] Matrix MergeMatrices(const Matrix &m11, const Matrix &m12, const Matrix &m21, const Matrix &m22) const;
 
   Matrix a_, b_, c_;
-  int n_;
+  int n_{0};
 };
 }  // namespace morozova_s_strassen_multiplication

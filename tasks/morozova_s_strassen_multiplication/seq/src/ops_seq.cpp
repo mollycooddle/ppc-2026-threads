@@ -1,11 +1,14 @@
 #include "morozova_s_strassen_multiplication/seq/include/ops_seq.hpp"
 
 #include <cmath>
+#include <cstddef>
 #include <vector>
+
+#include "morozova_s_strassen_multiplication/common/include/common.hpp"
 
 namespace morozova_s_strassen_multiplication {
 
-MorozovaSStrassenMultiplicationSEQ::MorozovaSStrassenMultiplicationSEQ(const InType &in) : n_(0) {
+MorozovaSStrassenMultiplicationSEQ::MorozovaSStrassenMultiplicationSEQ(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = OutType();
@@ -71,8 +74,7 @@ bool MorozovaSStrassenMultiplicationSEQ::PostProcessingImpl() {
   return true;
 }
 
-namespace {
-Matrix AddMatrixImpl(const Matrix &a, const Matrix &b) {
+static Matrix AddMatrixImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
@@ -85,7 +87,7 @@ Matrix AddMatrixImpl(const Matrix &a, const Matrix &b) {
   return result;
 }
 
-Matrix SubtractMatrixImpl(const Matrix &a, const Matrix &b) {
+static Matrix SubtractMatrixImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
@@ -98,7 +100,7 @@ Matrix SubtractMatrixImpl(const Matrix &a, const Matrix &b) {
   return result;
 }
 
-Matrix MultiplyStandardImpl(const Matrix &a, const Matrix &b) {
+static Matrix MultiplyStandardImpl(const Matrix &a, const Matrix &b) {
   int n = a.size;
   Matrix result(n);
 
@@ -114,7 +116,37 @@ Matrix MultiplyStandardImpl(const Matrix &a, const Matrix &b) {
 
   return result;
 }
-}  // namespace
+
+static void SplitMatrixImpl(const Matrix &m, Matrix &m11, Matrix &m12, Matrix &m21, Matrix &m22) {
+  int n = m.size;
+  int half = n / 2;
+
+  for (int i = 0; i < half; ++i) {
+    for (int j = 0; j < half; ++j) {
+      m11(i, j) = m(i, j);
+      m12(i, j) = m(i, j + half);
+      m21(i, j) = m(i + half, j);
+      m22(i, j) = m(i + half, j + half);
+    }
+  }
+}
+
+static Matrix MergeMatricesImpl(const Matrix &m11, const Matrix &m12, const Matrix &m21, const Matrix &m22) {
+  int half = m11.size;
+  int n = 2 * half;
+  Matrix result(n);
+
+  for (int i = 0; i < half; ++i) {
+    for (int j = 0; j < half; ++j) {
+      result(i, j) = m11(i, j);
+      result(i, j + half) = m12(i, j);
+      result(i + half, j) = m21(i, j);
+      result(i + half, j + half) = m22(i, j);
+    }
+  }
+
+  return result;
+}
 
 Matrix MorozovaSStrassenMultiplicationSEQ::AddMatrix(const Matrix &a, const Matrix &b) const {
   return AddMatrixImpl(a, b);
@@ -130,35 +162,12 @@ Matrix MorozovaSStrassenMultiplicationSEQ::MultiplyStandard(const Matrix &a, con
 
 void MorozovaSStrassenMultiplicationSEQ::SplitMatrix(const Matrix &m, Matrix &m11, Matrix &m12, Matrix &m21,
                                                      Matrix &m22) const {
-  int n = m.size;
-  int half = n / 2;
-
-  for (int i = 0; i < half; ++i) {
-    for (int j = 0; j < half; ++j) {
-      m11(i, j) = m(i, j);
-      m12(i, j) = m(i, j + half);
-      m21(i, j) = m(i + half, j);
-      m22(i, j) = m(i + half, j + half);
-    }
-  }
+  SplitMatrixImpl(m, m11, m12, m21, m22);
 }
 
 Matrix MorozovaSStrassenMultiplicationSEQ::MergeMatrices(const Matrix &m11, const Matrix &m12, const Matrix &m21,
                                                          const Matrix &m22) const {
-  int half = m11.size;
-  int n = 2 * half;
-  Matrix result(n);
-
-  for (int i = 0; i < half; ++i) {
-    for (int j = 0; j < half; ++j) {
-      result(i, j) = m11(i, j);
-      result(i, j + half) = m12(i, j);
-      result(i + half, j) = m21(i, j);
-      result(i + half, j + half) = m22(i, j);
-    }
-  }
-
-  return result;
+  return MergeMatricesImpl(m11, m12, m21, m22);
 }
 
 Matrix MorozovaSStrassenMultiplicationSEQ::MultiplyStrassen(const Matrix &a, const Matrix &b, int leaf_size) const {
