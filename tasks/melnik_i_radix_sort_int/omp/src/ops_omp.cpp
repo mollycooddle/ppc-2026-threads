@@ -1,11 +1,11 @@
 #include "melnik_i_radix_sort_int/omp/include/ops_omp.hpp"
 
+#include <omp.h>
+
 #include <algorithm>
 #include <array>
 #include <cstdint>
 #include <vector>
-
-#include <omp.h>
 
 namespace melnik_i_radix_sort_int {
 
@@ -16,7 +16,7 @@ constexpr int kBuckets = 1 << kBitsPerDigit;
 
 }  // namespace
 
-MelnikIRadixSortIntOMP::MelnikIRadixSortIntOMP(const InType& in) {
+MelnikIRadixSortIntOMP::MelnikIRadixSortIntOMP(const InType &in) {
   SetTypeOfTask(GetStaticTypeOfTask());
   GetInput() = in;
   GetOutput() = {};
@@ -43,11 +43,11 @@ bool MelnikIRadixSortIntOMP::PostProcessingImpl() {
   return std::is_sorted(GetOutput().begin(), GetOutput().end());
 }
 
-int MelnikIRadixSortIntOMP::GetMaxValue(const OutType& data) {
+int MelnikIRadixSortIntOMP::GetMaxValue(const OutType &data) {
   return *std::max_element(data.begin(), data.end());
 }
 
-void MelnikIRadixSortIntOMP::ParallelCountingSort(OutType& data, int exp, int offset) {
+void MelnikIRadixSortIntOMP::ParallelCountingSort(OutType &data, int exp, int offset) {
   const auto n = static_cast<int>(data.size());
   if (n == 0) {
     return;
@@ -63,7 +63,7 @@ void MelnikIRadixSortIntOMP::ParallelCountingSort(OutType& data, int exp, int of
     const int thread_id = omp_get_thread_num();
     const int start = thread_id * chunk_size;
     const int end = std::min(start + chunk_size, n);
-    int* local_count = &local_counts[thread_id * kBuckets];
+    int *local_count = &local_counts[thread_id * kBuckets];
 
     for (int i = start; i < end; i++) {
       int digit = ((data[i] + offset) / exp) % kBuckets;
@@ -112,7 +112,7 @@ void MelnikIRadixSortIntOMP::ParallelCountingSort(OutType& data, int exp, int of
   data = std::move(output);
 }
 
-void MelnikIRadixSortIntOMP::RadixSort(OutType& data) {
+void MelnikIRadixSortIntOMP::RadixSort(OutType &data) {
   if (data.empty()) {
     return;
   }

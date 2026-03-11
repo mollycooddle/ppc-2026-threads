@@ -10,7 +10,7 @@ class MelnikIRadixSortIntOMP : public BaseTask {
   static constexpr ppc::task::TypeOfTask GetStaticTypeOfTask() {
     return ppc::task::TypeOfTask::kOMP;
   }
-  explicit MelnikIRadixSortIntOMP(const InType& in);
+  explicit MelnikIRadixSortIntOMP(const InType &in);
 
  private:
   bool ValidationImpl() override;
@@ -18,9 +18,9 @@ class MelnikIRadixSortIntOMP : public BaseTask {
   bool RunImpl() override;
   bool PostProcessingImpl() override;
 
-  static void RadixSort(OutType& data);
-  static int GetMaxValue(const OutType& data);
-  static void ParallelCountingSort(OutType& data, int exp, int offset);
+  static void RadixSort(OutType &data);
+  static int GetMaxValue(const OutType &data);
+  static void ParallelCountingSort(OutType &data, int exp, int offset);
 };
 
 }  // namespace melnik_i_radix_sort_int
