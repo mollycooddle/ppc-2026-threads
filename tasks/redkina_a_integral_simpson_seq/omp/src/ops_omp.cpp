@@ -3,7 +3,6 @@
 
 #include <omp.h>
 
-#include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <functional>
@@ -52,40 +51,64 @@ bool RedkinaAIntegralSimpsonOMP::PreProcessingImpl() {
 bool RedkinaAIntegralSimpsonOMP::RunImpl() {
   size_t dim = a_.size();
 
+  // Локальные копии для использования в параллельной области (чтобы избежать ошибок C3028)
+  const std::vector<double> a_local = a_;
+  const std::vector<int> n_local = n_;
+  const auto func_local = func_;
+
   // Шаг интегрирования по каждому измерению
   std::vector<double> h(dim);
   double h_prod = 1.0;
   for (size_t i = 0; i < dim; ++i) {
-    h[i] = (b_[i] - a_[i]) / static_cast<double>(n_[i]);
+    h[i] = (b_[i] - a_local[i]) / static_cast<double>(n_local[i]);
     h_prod *= h[i];
   }
 
-  // Множители для линеаризации многомерного индекса (система счисления со смешанными основаниями)
+  // Множители для линеаризации индексов (число узлов = n[i] + 1)
   std::vector<int> strides(dim);
   strides[dim - 1] = 1;
   for (int i = static_cast<int>(dim) - 2; i >= 0; --i) {
-    strides[i] = strides[i + 1] * (n_[i + 1] + 1);
+    strides[i] = strides[i + 1] * (n_local[i + 1] + 1);
   }
-  size_t total_nodes = static_cast<size_t>(strides[0]) * static_cast<size_t>(n_[0] + 1);
+  int total_nodes = strides[0] * (n_local[0] + 1);
 
   double total_sum = 0.0;
 
-  // Устанавливаем число потоков согласно настройкам
+  // Устанавливаем число потоков согласно глобальным настройкам
   omp_set_num_threads(ppc::util::GetNumThreads());
 
-#pragma omp parallel default(none) shared(total_nodes, h, strides, dim, h_prod) reduction(+ : total_sum)
+#pragma omp parallel default(none) shared(total_nodes, h, strides, a_local, n_local, func_local, dim) \
+    reduction(+ : total_sum)
   {
-    size_t tid = static_cast<size_t>(omp_get_thread_num());
-    size_t threads = static_cast<size_t>(omp_get_num_threads());
+    std::vector<int> indices(dim);
+    std::vector<double> point(dim);
 
-    // Распределение индексов между потоками (равномерно с учётом остатка)
-    size_t chunk = total_nodes / threads;
-    size_t remainder = total_nodes % threads;
-    size_t my_start = tid * chunk + std::min(tid, remainder);
-    size_t my_count = chunk + (tid < remainder ? 1 : 0);
+#pragma omp for schedule(static)
+    for (int idx = 0; idx < total_nodes; ++idx) {
+      // Преобразование линейного индекса в многомерный
+      int remainder = idx;
+      for (size_t d = 0; d < dim; ++d) {
+        indices[d] = remainder / strides[d];
+        remainder %= strides[d];
+      }
 
-    if (my_count > 0) {
-      total_sum += CalculateChunkSum(my_start, my_count, h, strides);
+      // Вычисление координат и весов Симпсона
+      double w_prod = 1.0;
+      for (size_t d = 0; d < dim; ++d) {
+        int i_idx = indices[d];
+        point[d] = a_local[d] + i_idx * h[d];
+        int w;
+        if (i_idx == 0 || i_idx == n_local[d]) {
+          w = 1;
+        } else if (i_idx % 2 == 1) {
+          w = 4;
+        } else {
+          w = 2;
+        }
+        w_prod *= static_cast<double>(w);
+      }
+
+      total_sum += w_prod * func_local(point);
     }
   }
 
@@ -97,59 +120,6 @@ bool RedkinaAIntegralSimpsonOMP::RunImpl() {
 
   result_ = (h_prod / denominator) * total_sum;
   return true;
-}
-
-double RedkinaAIntegralSimpsonOMP::CalculateChunkSum(size_t start_idx, size_t count, const std::vector<double> &h,
-                                                     const std::vector<int> &strides) const {
-  size_t dim = a_.size();
-
-  // Восстанавливаем многомерные индексы для стартовой точки
-  std::vector<int> indices(dim);
-  size_t remainder = start_idx;
-  for (size_t d = 0; d < dim; ++d) {
-    indices[d] = static_cast<int>(remainder / static_cast<size_t>(strides[d]));
-    remainder = remainder % static_cast<size_t>(strides[d]);
-  }
-
-  double chunk_sum = 0.0;
-  std::vector<double> point(dim);
-
-  for (size_t iter = 0; iter < count; ++iter) {
-    // Вычисляем координаты точки
-    for (size_t d = 0; d < dim; ++d) {
-      point[d] = a_[d] + indices[d] * h[d];
-    }
-
-    // Вычисляем произведение весов Симпсона для текущей точки
-    double w_prod = 1.0;
-    for (size_t d = 0; d < dim; ++d) {
-      int idx = indices[d];
-      int w;
-      if (idx == 0 || idx == n_[d]) {
-        w = 1;
-      } else if (idx % 2 == 1) {
-        w = 4;
-      } else {
-        w = 2;
-      }
-      w_prod *= static_cast<double>(w);
-    }
-
-    chunk_sum += w_prod * func_(point);
-
-    // Переходим к следующей точке (инкремент многомерного индекса)
-    int d = static_cast<int>(dim) - 1;
-    while (d >= 0) {
-      ++indices[d];
-      if (indices[d] <= n_[d]) {
-        break;
-      }
-      indices[d] = 0;
-      --d;
-    }
-  }
-
-  return chunk_sum;
 }
 
 bool RedkinaAIntegralSimpsonOMP::PostProcessingImpl() {
