@@ -3,9 +3,9 @@
 #include <cmath>
 #include <cstddef>
 #include <random>
+#include <string>
 #include <tuple>
 #include <vector>
-#include <string>  
 
 #include "baranov_a_mult_matrix_fox_algorithm/common/include/common.hpp"
 #include "baranov_a_mult_matrix_fox_algorithm/omp/include/ops_omp.hpp"
