@@ -111,6 +111,84 @@ Matrix MultiplyStandardParallelImpl(const Matrix &a, const Matrix &b) {
   return result;
 }
 
+Matrix StrassenMultiplyImpl(const Matrix &a, const Matrix &b, int leaf_size, int max_depth, int current_depth) {
+  int n = a.size;
+
+  if (n <= leaf_size || n % 2 != 0 || current_depth >= max_depth) {
+    return MultiplyStandardParallelImpl(a, b);
+  }
+
+  int half = n / 2;
+
+  Matrix a11(half);
+  Matrix a12(half);
+  Matrix a21(half);
+  Matrix a22(half);
+  Matrix b11(half);
+  Matrix b12(half);
+  Matrix b21(half);
+  Matrix b22(half);
+
+  SplitMatrixImpl(a, a11, a12, a21, a22);
+  SplitMatrixImpl(b, b11, b12, b21, b22);
+
+  Matrix p1;
+  Matrix p2;
+  Matrix p3;
+  Matrix p4;
+  Matrix p5;
+  Matrix p6;
+  Matrix p7;
+
+  if (current_depth == 0) {
+#pragma omp parallel sections default(none) \
+    shared(a11, a12, a21, a22, b11, b12, b21, b22, leaf_size, max_depth, current_depth, p1, p2, p3, p4, p5, p6, p7)
+    {
+#pragma omp section
+      p1 = StrassenMultiplyImpl(a11, SubtractMatrixImpl(b12, b22), leaf_size, max_depth, current_depth + 1);
+
+#pragma omp section
+      p2 = StrassenMultiplyImpl(AddMatrixImpl(a11, a12), b22, leaf_size, max_depth, current_depth + 1);
+
+#pragma omp section
+      p3 = StrassenMultiplyImpl(AddMatrixImpl(a21, a22), b11, leaf_size, max_depth, current_depth + 1);
+
+#pragma omp section
+      p4 = StrassenMultiplyImpl(a22, SubtractMatrixImpl(b21, b11), leaf_size, max_depth, current_depth + 1);
+
+#pragma omp section
+      p5 = StrassenMultiplyImpl(AddMatrixImpl(a11, a22), AddMatrixImpl(b11, b22), leaf_size, max_depth,
+                                current_depth + 1);
+
+#pragma omp section
+      p6 = StrassenMultiplyImpl(SubtractMatrixImpl(a12, a22), AddMatrixImpl(b21, b22), leaf_size, max_depth,
+                                current_depth + 1);
+
+#pragma omp section
+      p7 = StrassenMultiplyImpl(SubtractMatrixImpl(a11, a21), AddMatrixImpl(b11, b12), leaf_size, max_depth,
+                                current_depth + 1);
+    }
+  } else {
+    p1 = StrassenMultiplyImpl(a11, SubtractMatrixImpl(b12, b22), leaf_size, max_depth, current_depth + 1);
+    p2 = StrassenMultiplyImpl(AddMatrixImpl(a11, a12), b22, leaf_size, max_depth, current_depth + 1);
+    p3 = StrassenMultiplyImpl(AddMatrixImpl(a21, a22), b11, leaf_size, max_depth, current_depth + 1);
+    p4 = StrassenMultiplyImpl(a22, SubtractMatrixImpl(b21, b11), leaf_size, max_depth, current_depth + 1);
+    p5 =
+        StrassenMultiplyImpl(AddMatrixImpl(a11, a22), AddMatrixImpl(b11, b22), leaf_size, max_depth, current_depth + 1);
+    p6 = StrassenMultiplyImpl(SubtractMatrixImpl(a12, a22), AddMatrixImpl(b21, b22), leaf_size, max_depth,
+                              current_depth + 1);
+    p7 = StrassenMultiplyImpl(SubtractMatrixImpl(a11, a21), AddMatrixImpl(b11, b12), leaf_size, max_depth,
+                              current_depth + 1);
+  }
+
+  Matrix c11 = AddMatrixImpl(SubtractMatrixImpl(AddMatrixImpl(p5, p4), p2), p6);
+  Matrix c12 = AddMatrixImpl(p1, p2);
+  Matrix c21 = AddMatrixImpl(p3, p4);
+  Matrix c22 = SubtractMatrixImpl(SubtractMatrixImpl(AddMatrixImpl(p5, p1), p3), p7);
+
+  return MergeMatricesImpl(c11, c12, c21, c22);
+}
+
 }  // namespace
 
 MorozovaSStrassenMultiplicationOMP::MorozovaSStrassenMultiplicationOMP(const InType &in) {
@@ -174,7 +252,7 @@ bool MorozovaSStrassenMultiplicationOMP::RunImpl() {
   if (n_ <= leaf_size) {
     c_ = MultiplyStandardParallel(a_, b_);
   } else {
-    c_ = MultiplyStrassenParallel(a_, b_, leaf_size, 0);
+    c_ = StrassenMultiplyImpl(a_, b_, leaf_size, kMaxParallelDepth, 0);
   }
 
   return true;
@@ -222,80 +300,7 @@ Matrix MorozovaSStrassenMultiplicationOMP::MergeMatrices(const Matrix &m11, cons
 }
 
 Matrix MorozovaSStrassenMultiplicationOMP::MultiplyStrassen(const Matrix &a, const Matrix &b, int leaf_size) {
-  return MultiplyStrassenParallel(a, b, leaf_size, 0);
-}
-
-Matrix MorozovaSStrassenMultiplicationOMP::MultiplyStrassenParallel(const Matrix &a, const Matrix &b, int leaf_size,
-                                                                    int depth) {  // NOLINT(misc-no-recursion)
-  int n = a.size;
-
-  if (n <= leaf_size || n % 2 != 0) {
-    return MultiplyStandardParallel(a, b);
-  }
-
-  int half = n / 2;
-
-  Matrix a11(half);
-  Matrix a12(half);
-  Matrix a21(half);
-  Matrix a22(half);
-  Matrix b11(half);
-  Matrix b12(half);
-  Matrix b21(half);
-  Matrix b22(half);
-
-  SplitMatrix(a, a11, a12, a21, a22);
-  SplitMatrix(b, b11, b12, b21, b22);
-
-  Matrix p1;
-  Matrix p2;
-  Matrix p3;
-  Matrix p4;
-  Matrix p5;
-  Matrix p6;
-  Matrix p7;
-
-  if (depth < kMaxParallelDepth) {
-#pragma omp parallel sections default(none) \
-    shared(a11, a12, a21, a22, b11, b12, b21, b22, leaf_size, depth, p1, p2, p3, p4, p5, p6, p7)
-    {
-#pragma omp section
-      p1 = MultiplyStrassenParallel(a11, SubtractMatrix(b12, b22), leaf_size, depth + 1);
-
-#pragma omp section
-      p2 = MultiplyStrassenParallel(AddMatrix(a11, a12), b22, leaf_size, depth + 1);
-
-#pragma omp section
-      p3 = MultiplyStrassenParallel(AddMatrix(a21, a22), b11, leaf_size, depth + 1);
-
-#pragma omp section
-      p4 = MultiplyStrassenParallel(a22, SubtractMatrix(b21, b11), leaf_size, depth + 1);
-
-#pragma omp section
-      p5 = MultiplyStrassenParallel(AddMatrix(a11, a22), AddMatrix(b11, b22), leaf_size, depth + 1);
-
-#pragma omp section
-      p6 = MultiplyStrassenParallel(SubtractMatrix(a12, a22), AddMatrix(b21, b22), leaf_size, depth + 1);
-
-#pragma omp section
-      p7 = MultiplyStrassenParallel(SubtractMatrix(a11, a21), AddMatrix(b11, b12), leaf_size, depth + 1);
-    }
-  } else {
-    p1 = MultiplyStrassenParallel(a11, SubtractMatrix(b12, b22), leaf_size, depth + 1);
-    p2 = MultiplyStrassenParallel(AddMatrix(a11, a12), b22, leaf_size, depth + 1);
-    p3 = MultiplyStrassenParallel(AddMatrix(a21, a22), b11, leaf_size, depth + 1);
-    p4 = MultiplyStrassenParallel(a22, SubtractMatrix(b21, b11), leaf_size, depth + 1);
-    p5 = MultiplyStrassenParallel(AddMatrix(a11, a22), AddMatrix(b11, b22), leaf_size, depth + 1);
-    p6 = MultiplyStrassenParallel(SubtractMatrix(a12, a22), AddMatrix(b21, b22), leaf_size, depth + 1);
-    p7 = MultiplyStrassenParallel(SubtractMatrix(a11, a21), AddMatrix(b11, b12), leaf_size, depth + 1);
-  }
-
-  Matrix c11 = AddMatrix(SubtractMatrix(AddMatrix(p5, p4), p2), p6);
-  Matrix c12 = AddMatrix(p1, p2);
-  Matrix c21 = AddMatrix(p3, p4);
-  Matrix c22 = SubtractMatrix(SubtractMatrix(AddMatrix(p5, p1), p3), p7);
-
-  return MergeMatrices(c11, c12, c21, c22);
+  return StrassenMultiplyImpl(a, b, leaf_size, kMaxParallelDepth, 0);
 }
 
 Matrix MorozovaSStrassenMultiplicationOMP::MultiplyStandardParallel(const Matrix &a, const Matrix &b) {
