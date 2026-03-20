@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <ranges>
 #include <vector>
 
 #include "shelenkova_m_shell_sort_simple_merge/common/include/common.hpp"
