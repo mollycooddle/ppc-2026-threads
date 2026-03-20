@@ -80,7 +80,7 @@ bool VinyaikinaEMultidimIntegrSimpsonSEQ::RunImpl() {
   std::vector<double> actual_step(limits.size());
   double simpson_factor = 1.0;
 
-  for (int i = 0; i < limits.size(); i++) {
+  for (size_t i = 0; i < limits.size(); i++) {
     int quan_steps = ((limits[i].second - limits[i].first) / (h) + 0.5);
     if (quan_steps % 2 != 0) {
       quan_steps++;

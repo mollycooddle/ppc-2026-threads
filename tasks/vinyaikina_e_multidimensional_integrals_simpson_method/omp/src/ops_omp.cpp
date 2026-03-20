@@ -105,7 +105,10 @@ bool VinyaikinaEMultidimIntegrSimpsonOMP::ValidationImpl() {
 }
 
 bool VinyaikinaEMultidimIntegrSimpsonOMP::RunImpl() {
-  auto &[h, limits, function] = GetInput();
+  const auto &input = GetInput();
+  double h = std::get<0>(input);
+  const auto &limits = std::get<1>(input);
+  auto &function = std::get<2>(input);
 
   const int num_threads = ppc::util::GetNumThreads();
 
@@ -115,7 +118,7 @@ bool VinyaikinaEMultidimIntegrSimpsonOMP::RunImpl() {
   std::vector<double> actual_step(limits.size());
   double simpson_factor = 1.0;
 
-  for (int i = 0; i < limits.size(); i++) {
+  for (size_t i = 0; i < limits.size(); i++) {
     int quan_steps = ((limits[i].second - limits[i].first) / (h) + 0.5);
     if (quan_steps % 2 != 0) {
       quan_steps++;
@@ -125,7 +128,7 @@ bool VinyaikinaEMultidimIntegrSimpsonOMP::RunImpl() {
   }
 
 #pragma omp parallel num_threads(num_threads) default(none) \
-    shared(limits, simpson_factor, actual_step, delta, function, std::cout) reduction(+ : res)
+    shared(limits, simpson_factor, actual_step, delta, function, num_threads) reduction(+ : res)
   {
     double left_border, right_border;
     if (omp_get_thread_num() != 0) {
