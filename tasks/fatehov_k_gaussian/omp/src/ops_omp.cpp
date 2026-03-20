@@ -57,7 +57,7 @@ bool FatehovKGaussianOMP::RunImpl() {
   const int ch = static_cast<int>(input.image.channels);
   const int half = kernel_size_ / 2;
 
-#pragma omp parallel for schedule(static)
+#pragma omp parallel for default(none) shared(input, output, w, h, ch, half, kernel_) schedule(static)
   for (int y_coord = 0; y_coord < h; y_coord++) {
     for (int x_coord = 0; x_coord < w; x_coord++) {
       for (int c_coord = 0; c_coord < ch; c_coord++) {

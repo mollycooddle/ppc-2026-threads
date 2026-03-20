@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <tuple>
 
 #include "fatehov_k_gaussian/common/include/common.hpp"
 #include "fatehov_k_gaussian/omp/include/ops_omp.hpp"
