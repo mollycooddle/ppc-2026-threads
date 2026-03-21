@@ -224,14 +224,13 @@ void MergeBlockPair(const BlockList &blocks, BlockList &next, size_t pair_index)
 }
 
 BlockList MergeBlockPairs(const BlockList &blocks) {
-  const auto pair_count = blocks.size() / 2;
-  const auto signed_pair_count = static_cast<std::ptrdiff_t>(pair_count);
+  const auto signed_pair_count = static_cast<std::ptrdiff_t>(blocks.size() / 2);
   BlockList next((blocks.size() + 1) / 2);
   std::exception_ptr exception;
   std::atomic_bool has_exception{false};
 
-#pragma omp parallel for default(none) shared(blocks, next, exception, has_exception) \
-    firstprivate(pair_count, signed_pair_count) schedule(static) if (pair_count > 1)
+#pragma omp parallel for default(none) shared(blocks, next, exception, has_exception) firstprivate(signed_pair_count) \
+    schedule(static) if (signed_pair_count > 1)
   for (std::ptrdiff_t pair = 0; pair < signed_pair_count; ++pair) {
     if (has_exception.load()) {
       continue;
