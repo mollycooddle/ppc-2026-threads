@@ -145,7 +145,7 @@ inline void RunBinaryImageConvexHullOmp(const BinaryImage &img, HullList &hulls)
   hulls.resize(components.size());
 #pragma omp parallel for default(none) shared(components, hulls, count) schedule(dynamic)
   for (int i = 0; i < count; ++i) {
-    const size_t idx = static_cast<size_t>(i);
+    const auto idx = static_cast<size_t>(i);
     detail::GrahamHull(components[idx], hulls[idx]);
   }
 }
