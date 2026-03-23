@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <memory>
 #include <random>
 #include <stdexcept>
 #include <string>
