@@ -7,6 +7,8 @@
 #include <utility>
 #include <vector>
 
+#include "nikitina_v_hoar_sort_batcher/common/include/common.hpp"
+
 namespace nikitina_v_hoar_sort_batcher {
 
 namespace {
