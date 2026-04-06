@@ -39,11 +39,10 @@ void BaranovAMultMatrixFoxAlgorithmSTL::StandardMultiplication(size_t n) {
   }
 
   std::vector<std::thread> threads;
-  std::vector<size_t> ranges;
-
   size_t chunk_size = (n + num_threads - 1) / num_threads;
-  for (unsigned int t = 0; t < num_threads; ++t) {
-    size_t start_i = t * chunk_size;
+
+  for (unsigned int thread_id = 0; thread_id < num_threads; ++thread_id) {
+    size_t start_i = thread_id * chunk_size;
     size_t end_i = std::min(start_i + chunk_size, n);
     if (start_i >= n) {
       break;
@@ -62,8 +61,8 @@ void BaranovAMultMatrixFoxAlgorithmSTL::StandardMultiplication(size_t n) {
     });
   }
 
-  for (auto &t : threads) {
-    t.join();
+  for (auto &thread : threads) {
+    thread.join();
   }
 }
 
@@ -72,6 +71,7 @@ void BaranovAMultMatrixFoxAlgorithmSTL::FoxBlockMultiplication(size_t n, size_t 
   auto &output = GetOutput();
 
   size_t num_blocks = (n + block_size - 1) / block_size;
+
   std::fill(output.begin(), output.end(), 0.0);
 
   unsigned int num_threads = std::thread::hardware_concurrency();
@@ -79,37 +79,37 @@ void BaranovAMultMatrixFoxAlgorithmSTL::FoxBlockMultiplication(size_t n, size_t 
     num_threads = 4;
   }
 
-  for (size_t bk = 0; bk < num_blocks; ++bk) {
+  for (size_t block_k = 0; block_k < num_blocks; ++block_k) {
     std::vector<std::thread> threads;
-    std::vector<size_t> block_indices(num_blocks * num_blocks);
-    for (size_t i = 0; i < num_blocks * num_blocks; ++i) {
-      block_indices[i] = i;
-    }
 
+    // Создаем вектор индексов блоков
+    std::vector<size_t> block_indices(num_blocks * num_blocks);
+    for (size_t idx = 0; idx < num_blocks * num_blocks; ++idx) {
+      block_indices[idx] = idx;
+    }
     size_t chunk_size = (block_indices.size() + num_threads - 1) / num_threads;
 
-    for (unsigned int t = 0; t < num_threads; ++t) {
-      size_t start_idx = t * chunk_size;
+    for (unsigned int thread_id = 0; thread_id < num_threads; ++thread_id) {
+      size_t start_idx = thread_id * chunk_size;
       size_t end_idx = std::min(start_idx + chunk_size, block_indices.size());
       if (start_idx >= block_indices.size()) {
         break;
       }
 
-      threads.emplace_back([&, start_idx, end_idx, bk]() {
+      threads.emplace_back([&, start_idx, end_idx, block_k]() {
         for (size_t idx = start_idx; idx < end_idx; ++idx) {
           size_t linear_idx = block_indices[idx];
-          size_t bi = linear_idx / num_blocks;
-          size_t bj = linear_idx % num_blocks;
+          size_t block_i = linear_idx / num_blocks;
+          size_t block_j = linear_idx % num_blocks;
 
-          size_t broadcast_block = (bi + bk) % num_blocks;
+          size_t broadcast_block = (block_i + block_k) % num_blocks;
 
-          size_t i_start = bi * block_size;
+          size_t i_start = block_i * block_size;
           size_t i_end = std::min(i_start + block_size, n);
-          size_t j_start = bj * block_size;
+          size_t j_start = block_j * block_size;
           size_t j_end = std::min(j_start + block_size, n);
           size_t k_start = broadcast_block * block_size;
           size_t k_end = std::min(k_start + block_size, n);
-
           for (size_t i = i_start; i < i_end; ++i) {
             for (size_t j = j_start; j < j_end; ++j) {
               double sum = 0.0;
@@ -122,8 +122,9 @@ void BaranovAMultMatrixFoxAlgorithmSTL::FoxBlockMultiplication(size_t n, size_t 
         }
       });
     }
-    for (auto &t : threads) {
-      t.join();
+
+    for (auto &thread : threads) {
+      thread.join();
     }
   }
 }
