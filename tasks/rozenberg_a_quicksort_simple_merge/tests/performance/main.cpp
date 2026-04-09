@@ -57,8 +57,8 @@ TEST_P(RozenbergARunPerfTestsThreads, RunPerfModes) {
 namespace {
 
 const auto kAllPerfTasks =
-    ppc::util::MakeAllPerfTasks<InType, RozenbergAQuicksortSimpleMergeSEQ, RozenbergAQuicksortSimpleMergeOMP, RozenbergAQuicksortSimpleMergeTBB>(
-        PPC_SETTINGS_rozenberg_a_quicksort_simple_merge);
+    ppc::util::MakeAllPerfTasks<InType, RozenbergAQuicksortSimpleMergeSEQ, RozenbergAQuicksortSimpleMergeOMP,
+                                RozenbergAQuicksortSimpleMergeTBB>(PPC_SETTINGS_rozenberg_a_quicksort_simple_merge);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 

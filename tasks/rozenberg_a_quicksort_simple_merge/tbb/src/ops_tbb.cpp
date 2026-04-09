@@ -1,14 +1,13 @@
 #include "rozenberg_a_quicksort_simple_merge/tbb/include/ops_tbb.hpp"
 
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/global_control.h>
+#include <oneapi/tbb/parallel_for.h>
 #include <tbb/tbb.h>
 
 #include <stack>
 #include <utility>
 #include <vector>
-
-#include <oneapi/tbb/parallel_for.h>
-#include <oneapi/tbb/blocked_range.h>
-#include <oneapi/tbb/global_control.h>
 
 #include "rozenberg_a_quicksort_simple_merge/common/include/common.hpp"
 
@@ -144,13 +143,12 @@ bool RozenbergAQuicksortSimpleMergeTBB::RunImpl() {
   }
   borders[num_threads] = n;
 
-//  Sort local chunks
-  tbb::parallel_for(tbb::blocked_range<int>(0, num_threads), 
-    [&](const tbb::blocked_range<int>& range) {
-      for (int i = range.begin(); i != range.end(); i++) {
-        Quicksort(data, borders[i], borders[i+1]-1);
-      }
-    });
+  //  Sort local chunks
+  tbb::parallel_for(tbb::blocked_range<int>(0, num_threads), [&](const tbb::blocked_range<int> &range) {
+    for (int i = range.begin(); i != range.end(); i++) {
+      Quicksort(data, borders[i], borders[i + 1] - 1);
+    }
+  });
 
   //  Merge sorted chunks
   for (int i = 1; i < num_threads; i++) {
