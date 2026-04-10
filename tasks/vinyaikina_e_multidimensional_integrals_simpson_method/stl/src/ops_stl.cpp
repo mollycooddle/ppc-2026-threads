@@ -123,7 +123,7 @@ bool VinyaikinaEMultidimIntegrSimpsonSTL::RunImpl() {
   std::vector<std::thread> threads;
 
   for (int i = 0; i < num_threads; ++i) {
-    threads.emplace_back([this, i, num_threads, delta, &limits, &actual_step, &function, simpson_factor, &results]() {
+    threads.emplace_back([i, num_threads, delta, &limits, &actual_step, &function, simpson_factor, &results]() {
       double left = limits[0].first;
       double right = limits[0].second;
 
