@@ -65,7 +65,7 @@ namespace {
 
 const auto kAllPerfTasks =
     ppc::util::MakeAllPerfTasks<InType, ChyokotovADenseMatMulFoxAlgorithmSEQ, ChyokotovADenseMatMulFoxAlgorithmOMP>(
-        PPC_SETTINGS_example_threads);
+        PPC_SETTINGS_chyokotov_a_dence_matrix_matmul);
 
 const auto kGtestValues = ppc::util::TupleToGTestValues(kAllPerfTasks);
 

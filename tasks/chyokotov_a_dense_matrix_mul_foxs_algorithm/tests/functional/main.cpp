@@ -88,8 +88,8 @@ const std::array<TestType, 4> kTestParam = {
 };
 
 const auto kTestTasksList = std::tuple_cat(
-    ppc::util::AddFuncTask<ChyokotovADenseMatMulFoxAlgorithmOMP, InType>(kTestParam, PPC_SETTINGS_example_threads),
-    ppc::util::AddFuncTask<ChyokotovADenseMatMulFoxAlgorithmSEQ, InType>(kTestParam, PPC_SETTINGS_example_threads));
+    ppc::util::AddFuncTask<ChyokotovADenseMatMulFoxAlgorithmOMP, InType>(kTestParam, PPC_SETTINGS_chyokotov_a_dence_matrix_matmul),
+    ppc::util::AddFuncTask<ChyokotovADenseMatMulFoxAlgorithmSEQ, InType>(kTestParam, PPC_SETTINGS_chyokotov_a_dence_matrix_matmul));
 
 const auto kGtestValues = ppc::util::ExpandToValues(kTestTasksList);
 
