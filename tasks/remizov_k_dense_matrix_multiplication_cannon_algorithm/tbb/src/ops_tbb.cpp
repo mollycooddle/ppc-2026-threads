@@ -76,4 +76,17 @@ void RemizovKDenseMatrixMultiplicationCannonAlgorithmTbb::ShiftBlocksLeft(
   });
 }
 
+void RemizovKDenseMatrixMultiplicationCannonAlgorithmTbb::ShiftBlocksUp(
+    std::vector<std::vector<std::vector<std::vector<double>>>> &matrix_blocks,
+    int block_count) {
+  // Parallelize over columns; each column shift is independent
+  tbb::parallel_for(0, block_count, [&](int j) {
+    auto first_element = std::move(matrix_blocks[0][j]);
+    for (int i = 1; i < block_count; ++i) {
+      matrix_blocks[i - 1][j] = std::move(matrix_blocks[i][j]);
+    }
+    matrix_blocks[block_count - 1][j] = std::move(first_element);
+  });
+}
+
 }  // namespace remizov_k_dense_matrix_multiplication_cannon_algorithm
