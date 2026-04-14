@@ -97,23 +97,22 @@ class BaranovAMatrixMultiplicationFuncTest
   }
 
  private:
-template <typename T>
-static std::string GetImplementationName() {
-  std::string result = "unknown";
-  if constexpr (std::is_same_v<T, baranov_a_mult_matrix_fox_algorithm_seq::BaranovAMultMatrixFoxAlgorithmSEQ>) {
-    result = "seq";
+  template <typename T>
+  static std::string GetImplementationName() {
+    if constexpr (std::is_same_v<T, baranov_a_mult_matrix_fox_algorithm_seq::BaranovAMultMatrixFoxAlgorithmSEQ>) {
+      return "seq";
+    } else if constexpr (std::is_same_v<T,
+                                        baranov_a_mult_matrix_fox_algorithm_omp::BaranovAMultMatrixFoxAlgorithmOMP>) {
+      return "omp";
+    } else if constexpr (std::is_same_v<T,
+                                        baranov_a_mult_matrix_fox_algorithm_tbb::BaranovAMultMatrixFoxAlgorithmTBB>) {
+      return "tbb";
+    } else if constexpr (std::is_same_v<T,
+                                        baranov_a_mult_matrix_fox_algorithm_stl::BaranovAMultMatrixFoxAlgorithmSTL>) {
+      return "stl";
+    }
+    return "unknown";
   }
-  if constexpr (std::is_same_v<T, baranov_a_mult_matrix_fox_algorithm_omp::BaranovAMultMatrixFoxAlgorithmOMP>) {
-    result = "omp";
-  }
-  if constexpr (std::is_same_v<T, baranov_a_mult_matrix_fox_algorithm_tbb::BaranovAMultMatrixFoxAlgorithmTBB>) {
-    result = "tbb";
-  }
-  if constexpr (std::is_same_v<T, baranov_a_mult_matrix_fox_algorithm_stl::BaranovAMultMatrixFoxAlgorithmSTL>) {
-    result = "stl";
-  }
-  return result;
-}
 
   static void ReferenceMultiply(const std::vector<double> &a, const std::vector<double> &b, std::vector<double> &c,
                                 size_t n) {
