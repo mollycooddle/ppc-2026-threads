@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
-#include <functional>
 #include <numeric>
 #include <thread>
 #include <vector>
@@ -17,19 +16,19 @@ namespace {
 void GetThreadBounds(int n, int num_threads, int tid, int &start, int &end) {
   int chunk = n / num_threads;
   int remainder = n % num_threads;
-  start = tid * chunk + std::min(tid, remainder);
+  start = (tid * chunk) + std::min(tid, remainder);
   end = start + chunk + (tid < remainder ? 1 : 0);
 }
 
-double ComputeDotProduct_STL(const std::vector<double> &v1, const std::vector<double> &v2, int num_threads) {
+double ComputeDotProductStl(const std::vector<double> &v1, const std::vector<double> &v2, int num_threads) {
   int n = static_cast<int>(v1.size());
   std::vector<double> partial_results(num_threads, 0.0);
   std::vector<std::thread> threads;
-
+  threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&, i]() {
-      int start;
-      int end;
+      int start = 0;
+      int end = 0;
       GetThreadBounds(n, num_threads, i, start, end);
       double local_sum = 0.0;
       for (int j = start; j < end; ++j) {
@@ -45,13 +44,14 @@ double ComputeDotProduct_STL(const std::vector<double> &v1, const std::vector<do
   return std::accumulate(partial_results.begin(), partial_results.end(), 0.0);
 }
 
-void ComputeAp_STL(const std::vector<double> &matrix, const std::vector<double> &p, std::vector<double> &ap, int n,
-                   int num_threads) {
+void ComputeApStl(const std::vector<double> &matrix, const std::vector<double> &p, std::vector<double> &ap, int n,
+                  int num_threads) {
   std::vector<std::thread> threads;
+  threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&, i]() {
-      int start;
-      int end;
+      int start = 0;
+      int end = 0;
       GetThreadBounds(n, num_threads, i, start, end);
       for (int row = start; row < end; ++row) {
         double sum = 0.0;
@@ -67,16 +67,16 @@ void ComputeAp_STL(const std::vector<double> &matrix, const std::vector<double> 
   }
 }
 
-double UpdateResultAndResidual_STL(std::vector<double> &result, std::vector<double> &r, const std::vector<double> &p,
-                                   const std::vector<double> &ap, double alpha, int num_threads) {
+double UpdateResultAndResidualStl(std::vector<double> &result, std::vector<double> &r, const std::vector<double> &p,
+                                  const std::vector<double> &ap, double alpha, int num_threads) {
   int n = static_cast<int>(result.size());
   std::vector<double> partial_rs_new(num_threads, 0.0);
   std::vector<std::thread> threads;
-
+  threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&, i]() {
-      int start;
-      int end;
+      int start = 0;
+      int end = 0;
       GetThreadBounds(n, num_threads, i, start, end);
       double local_rs = 0.0;
       for (int j = start; j < end; ++j) {
@@ -94,13 +94,14 @@ double UpdateResultAndResidual_STL(std::vector<double> &result, std::vector<doub
   return std::accumulate(partial_rs_new.begin(), partial_rs_new.end(), 0.0);
 }
 
-void UpdateP_STL(std::vector<double> &p, const std::vector<double> &r, double beta, int num_threads) {
+void UpdatePStl(std::vector<double> &p, const std::vector<double> &r, double beta, int num_threads) {
   int n = static_cast<int>(p.size());
   std::vector<std::thread> threads;
+  threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&, i]() {
-      int start;
-      int end;
+      int start = 0;
+      int end = 0;
       GetThreadBounds(n, num_threads, i, start, end);
       for (int j = start; j < end; ++j) {
         p[j] = r[j] + (beta * p[j]);
@@ -236,10 +237,11 @@ bool SmyshlaevASleCgTaskSTL::RunParallel(int num_threads) {
 
   std::vector<double> partial_rs(num_threads, 0.0);
   std::vector<std::thread> threads;
+  threads.reserve(num_threads);
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&, i]() {
-      int start;
-      int end;
+      int start = 0;
+      int end = 0;
       GetThreadBounds(n, num_threads, i, start, end);
       double local_rs = 0.0;
       for (int j = start; j < end; ++j) {
@@ -261,20 +263,20 @@ bool SmyshlaevASleCgTaskSTL::RunParallel(int num_threads) {
 
   const int max_iterations = n * 2;
   for (int iter = 0; iter < max_iterations; ++iter) {
-    ComputeAp_STL(flat_A_, p, ap, n, num_threads);
-    double p_ap = ComputeDotProduct_STL(p, ap, num_threads);
+    ComputeApStl(flat_A_, p, ap, n, num_threads);
+    double p_ap = ComputeDotProductStl(p, ap, num_threads);
     if (std::abs(p_ap) < 1e-15) {
       break;
     }
 
     double alpha = rs_old / p_ap;
-    double rs_new = UpdateResultAndResidual_STL(result, r, p, ap, alpha, num_threads);
+    double rs_new = UpdateResultAndResidualStl(result, r, p, ap, alpha, num_threads);
     if (std::sqrt(rs_new) < epsilon) {
       break;
     }
 
     double beta = rs_new / rs_old;
-    UpdateP_STL(p, r, beta, num_threads);
+    UpdatePStl(p, r, beta, num_threads);
     rs_old = rs_new;
   }
 
