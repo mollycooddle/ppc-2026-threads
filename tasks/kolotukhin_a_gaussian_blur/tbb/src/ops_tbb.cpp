@@ -20,22 +20,6 @@ KolotukhinAGaussinBlureTBB::KolotukhinAGaussinBlureTBB(const InType &in) {
 }
 
 bool KolotukhinAGaussinBlureTBB::ValidationImpl() {
-  const auto &pixel_data = std::get<0>(GetInput());
-  const auto img_width = std::get<1>(GetInput());
-  const auto img_height = std::get<2>(GetInput());
-
-  return static_cast<std::size_t>(img_height) * static_cast<std::size_t>(img_width) == pixel_data.size();
-}
-
-bool KolotukhinAGaussinBlureTBB::PreProcessingImpl() {
-  const auto img_width = std::get<1>(GetInput());
-  const auto img_height = std::get<2>(GetInput());
-
-  GetOutput().assign(static_cast<std::size_t>(img_height) * static_cast<std::size_t>(img_width), 0);
-  return true;
-}
-
-bool KolotukhinAGaussinBlureTBB::ValidationImpl() {
   const auto &pixel_data = get<0>(GetInput());
   const auto img_width = get<1>(GetInput());
   const auto img_height = get<2>(GetInput());
