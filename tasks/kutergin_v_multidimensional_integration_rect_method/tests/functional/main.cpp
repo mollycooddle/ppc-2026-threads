@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <mpi.h>
 
 #include <array>
 #include <cmath>
@@ -33,6 +34,15 @@ class RectMethodFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, 
   }
 
   bool CheckTestOutputData(OutType &output_data) final {
+    int rank = 0;
+    if (ppc::util::IsUnderMpirun()) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    }
+
+    if (rank != 0) {
+      return true;
+    }
+
     const auto &params = std::get<static_cast<std::size_t>(ppc::util::GTestParamIndex::kTestParams)>(GetParam());
     std::string test_name = std::get<2>(params);
 
@@ -49,7 +59,7 @@ class RectMethodFuncTests : public ppc::util::BaseRunFuncTests<InType, OutType, 
 
  private:
   InType input_data_{};
-  OutType expected_output_{};
+  OutType expected_output_{0.0};
 };
 
 namespace {

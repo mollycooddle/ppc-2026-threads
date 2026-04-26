@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <functional>
+#include <utility>
 #include <vector>
 
 #include "../../common/include/common.hpp"
@@ -23,7 +25,10 @@ class RectMethodALL : public BaseTask {
   bool PostProcessingImpl() override;
 
  private:
-  double CalculateChunkSum(size_t start_idx, size_t end_idx, const std::vector<double> &h);
+  void DistributeData(int rank, size_t &dims);
+  static double CalculateChunkSum(size_t start_idx, size_t end_idx, const std::vector<double> &h,
+                                  const std::vector<std::pair<double, double>> &limits, const std::vector<int> &n_steps,
+                                  const std::function<double(const std::vector<double> &)> &func);
 
   InType local_input_;
   double res_{0.0};

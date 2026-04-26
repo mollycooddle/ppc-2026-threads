@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <mpi.h>
 
 #include <cmath>
 #include <vector>
@@ -10,6 +11,7 @@
 #include "../../stl/include/rect_method_stl.hpp"
 #include "../../tbb/include/rect_method_tbb.hpp"
 #include "util/include/perf_test_util.hpp"
+#include "util/include/util.hpp"
 
 namespace kutergin_v_multidimensional_integration_rect_method {
 
@@ -28,6 +30,16 @@ class RectMethodPerfTests : public ppc::util::BaseRunPerfTests<InType, OutType> 
       }
       return sum;
     };
+
+    int rank = 0;
+    if (ppc::util::IsUnderMpirun()) {
+      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    }
+
+    if (rank == 0) {
+      input_data_.limits.resize(5, {0.0, 1.0});
+      input_data_.n_steps.resize(5, 30);
+    }
   }
 
   bool CheckTestOutputData([[maybe_unused]] OutType &output_data) final {
